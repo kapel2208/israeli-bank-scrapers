@@ -311,6 +311,70 @@ async function fetchAccounts(page: Page, startDate: Moment) {
   return accounts;
 }
 
+const securitiesTableTranslationMap: { [key: string]: string } = {
+  'שם נייר': 'paperName',
+  'סימבול': 'symbol',
+  'תאריך ערך': 'valueDate',
+  'תאורפעולה': 'actionDescription',
+  'כמות': 'quantity',
+  'שער': 'rate',
+  'סוגח-ן': 'accountType',
+  'סוגמטבע': 'currencyType',
+  'תמורהברוטו': 'grossValue',
+  'תמורה': 'netValue',
+  'מסבארץ': 'taxInCountry',
+  'מסבחו"ל': 'foreignTax',
+  'עמלה': 'commission',
+  'עמלתדנ"פ': 'handlingFee',
+  'סיבתאי-ביצוע': 'executionReason',
+  'תאריךרישום': 'registrationDate',
+  'תאריךתמורה': 'settlementDate',
+};
+
+function translateSecuritiesHeader(rawHeaders: string[]): string[] {
+  return rawHeaders.map((term, index) => {
+    return securitiesTableTranslationMap[term] || `unknown${index + 1}`;
+  });
+}
+
+async function parseSecurities(page: Page): Promise<object[]> {
+  await waitUntilElementFound(page, '#\\33 51table tbody tr');
+
+  const headers = translateSecuritiesHeader(await pageEvalAll<string[]>(page, '#\\33 51table thead th', [], ths => ths.map(th => th.textContent || '')));
+
+  const tdsValues = await pageEvalAll(page, '#\\33 51table tbody tr', [], (trs) => {
+    return trs.map(el => {
+      const cells = Array.from(el.querySelectorAll('td')).map((td) => td.textContent || '');
+      return cells;
+    });
+  });
+
+  const data = tdsValues.map(cells => {
+    return headers.reduce((obj, key, index) => {
+      obj[key] = cells[index].trim().replace(/\s+/g, ' ');
+      return obj;
+    }, {} as Record<string, string>);
+  });
+
+  return data;
+}
+
+async function fetchSecurities(page: Page, startDate: Moment) {
+  await waitUntilElementFound(page, 'input#TrFrom');
+
+  await fillInput(
+    page,
+    'input#TrFrom',
+    startDate.format('DD/MM/YYYY'),
+  );
+
+  await clickButton(page, '#tnuot_351 .smallbutton:nth-child(2)');
+  await waitForNavigation(page);
+
+  const securities = await parseSecurities(page);
+  return securities;
+}
+
 type ScraperSpecificCredentials = { username: string, password: string };
 
 class BeinleumiGroupBaseScraper extends BaseScraperWithBrowser<ScraperSpecificCredentials> {
@@ -319,6 +383,8 @@ class BeinleumiGroupBaseScraper extends BaseScraperWithBrowser<ScraperSpecificCr
   LOGIN_URL = '';
 
   TRANSACTIONS_URL = '';
+
+  SECURITIES_URL = '';
 
   getLoginOptions(credentials: ScraperSpecificCredentials) {
     return {
@@ -344,9 +410,16 @@ class BeinleumiGroupBaseScraper extends BaseScraperWithBrowser<ScraperSpecificCr
 
     const accounts = await fetchAccounts(this.page, startMoment);
 
+    let securities;
+    if (this.options.scrapeSecuritiesInfo) {
+      await this.navigateTo(this.SECURITIES_URL);
+      securities = await fetchSecurities(this.page, startMoment);
+    }
+
     return {
       success: true,
       accounts,
+      securities,
     };
   }
 }

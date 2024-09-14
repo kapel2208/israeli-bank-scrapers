@@ -6,6 +6,7 @@ class OtsarHahayalScraper extends BeinleumiGroupBaseScraper {
   LOGIN_URL = `${this.BASE_URL}/MatafLoginService/MatafLoginServlet?bankId=OTSARPRTAL&site=Private&KODSAFA=HE`;
 
   TRANSACTIONS_URL = `${this.BASE_URL}/wps/myportal/FibiMenu/Online/OnAccountMngment/OnBalanceTrans/PrivateAccountFlow`;
+  SECURITIES_URL = `${this.BASE_URL}/wps/myportal/FibiMenu/Online/OnCapitalMarket/OnMyportfolio/OnlnNewSecuritiesTrans`
 }
 
 export default OtsarHahayalScraper;

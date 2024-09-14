@@ -117,6 +117,8 @@ export interface ScraperOptions {
    * Please note: It will take more time to finish the process.
    */
   additionalTransactionInformation?: boolean;
+
+  scrapeSecuritiesInfo?: boolean;
 }
 
 export interface OutputDataOptions {
