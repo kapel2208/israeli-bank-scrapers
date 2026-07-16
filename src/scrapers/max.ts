@@ -358,7 +358,13 @@ class MaxScraper extends BaseScraperWithBrowser<ScraperSpecificCredentials> {
     return {
       loginUrl: LOGIN_URL,
       fields: createLoginFields(credentials),
-      submitButtonSelector: 'app-user-login-form .general-button.send-me-code',
+      // Scoped to #login-password: Max also renders a "login with ID + mobile
+      // one-time-code" tab (#login-id) whose button reuses the same
+      // `.general-button.send-me-code` classes. An unscoped selector matches
+      // that hidden tab's button first (DOM order), so the scraper clicks
+      // "send me a code" instead of submitting the password form, then hangs
+      // waiting for a redirect that never comes.
+      submitButtonSelector: '#login-password app-user-login-form .general-button.send-me-code',
       preAction: async () => {
         if (await elementPresentOnPage(this.page, '#closePopup')) {
           await clickButton(this.page, '#closePopup');
