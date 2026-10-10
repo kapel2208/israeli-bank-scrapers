@@ -11,6 +11,7 @@ import { type ScraperOptions, type ScraperScrapingResult } from './interface';
 
 const BASE_URL = 'https://start.telebank.co.il';
 const DATE_FORMAT = 'YYYYMMDD';
+const ACCOUNT_BLOCKED_MSG = 'המנוי חסום לכניסה למערכת';
 
 interface ScrapedTransaction {
   OperationNumber: number;
@@ -152,6 +153,19 @@ function getPossibleLoginResults(): PossibleLoginResults {
   ];
   urls[LoginResults.InvalidPassword] = [`${BASE_URL}/apollo/core/templates/lobby/masterPage.html#/LOGIN_PAGE`];
   urls[LoginResults.ChangePassword] = [`${BASE_URL}/apollo/core/templates/lobby/masterPage.html#/PWD_RENEW`];
+  urls[LoginResults.AccountBlocked] = [
+    async options => {
+      if (!options || !options.page) {
+        throw new Error('missing page options argument');
+      }
+      return options.page
+        .waitForFunction(msg => document.body.innerText.includes(msg), { timeout: 5000 }, ACCOUNT_BLOCKED_MSG)
+        .then(
+          () => true,
+          () => false,
+        );
+    },
+  ];
   return urls;
 }
 
